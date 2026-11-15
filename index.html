@@ -1,9 +1,11 @@
 <!DOCTYPE html>
+<!-- Stream Deck TV - Made By Luni -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Stream Deck TV</title>
+<meta name="author" content="Luni">
+<title>Stream Deck TV - Made By Luni</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -30,6 +32,7 @@ video{width:100%;height:100%;object-fit:contain;display:block;background:#000}
 #card.off{opacity:0;pointer-events:none}
 .plate{position:relative;background:rgba(5,7,15,.92);padding:26px 40px;border-radius:6px;text-align:center;border:1px solid var(--line);max-width:min(560px,86vw)}
 .plate h1{font-size:clamp(22px,4vw,38px);font-weight:700;letter-spacing:.04em}
+.plate .by{margin-top:14px;font-size:12px;font-weight:600;letter-spacing:.14em;color:var(--accent)}
 .plate p{margin-top:8px;font-size:clamp(12px,1.6vw,15px);color:var(--mute);line-height:1.6}
 
 /* overlays fade with .ui */
@@ -40,6 +43,9 @@ body.ui .ov{opacity:1;pointer-events:auto}
 .pill{padding:10px 18px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid var(--line);font-size:13px;font-weight:600;backdrop-filter:blur(8px)}
 .pill:hover{background:rgba(255,255,255,.2)}
 .pill.primary{background:var(--accent);color:#08102a;border-color:var(--accent)}
+.brand{font-size:14px;font-weight:700;letter-spacing:.04em;margin-right:8px;white-space:nowrap}
+.brand i{font-style:normal;font-weight:400;color:var(--mute);margin-left:8px;font-size:12px}
+.credit{padding:10px 20px calc(env(safe-area-inset-bottom) + 12px);font-size:11px;letter-spacing:.14em;color:var(--mute);text-align:center;border-top:1px solid var(--line)}
 #clock{font-size:15px;font-weight:300;letter-spacing:.06em;margin-left:6px;min-width:3.5em;text-align:right}
 
 #osd{position:absolute;left:0;right:0;bottom:0;padding:70px calc(env(safe-area-inset-right) + 26px) calc(env(safe-area-inset-bottom) + 22px) calc(env(safe-area-inset-left) + 26px);background:linear-gradient(transparent,rgba(0,0,0,.85));display:flex;flex-direction:column;gap:12px}
@@ -102,19 +108,20 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
 .drop:hover,.drop:focus-within{border-color:var(--accent);color:var(--text)}
 .drop input{position:absolute;opacity:0;width:1px;height:1px}
 
-@media (max-width:700px){.pill{padding:9px 14px}#clock{display:none}.lg{width:46px;height:46px}}
+@media (max-width:700px){.brand i{display:none}.pill{padding:9px 14px}#clock{display:none}.lg{width:46px;height:46px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body class="ui">
 <div id="tv">
   <video id="v" playsinline autoplay></video>
-  <div id="card"><div class="plate"><h1>NO SIGNAL</h1><p>Press OK, tap the screen, or choose Sources to load a playlist, a stream link, or local files.</p></div></div>
+  <div id="card"><div class="plate"><h1>NO SIGNAL</h1><p>Press OK, tap the screen, or choose Sources to load a playlist, a stream link, or local files.</p><p class="by">Made By Luni</p></div></div>
 
   <div id="digits"></div>
   <div id="toast" role="status"></div>
 
   <div id="top" class="ov">
+    <span class="brand">Stream Deck TV <i>Made By Luni</i></span>
     <button class="pill primary" id="bGuide">Guide</button>
     <button class="pill" id="bSrc">Sources</button>
     <span class="sp"></span>
@@ -139,6 +146,7 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
     <input id="q" class="field" type="search" placeholder="Search channels" autocomplete="off">
     <div id="chips"></div>
     <div id="list" role="listbox"></div>
+    <div class="credit">Made By Luni</div>
   </aside>
 
   <div id="modal" role="dialog" aria-modal="true" aria-label="Sources">
@@ -164,6 +172,7 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
         <p class="hint">Video files play directly. An .m3u file is read as a playlist. Files stay on your device.</p>
       </div>
       <button class="pill" id="closeModal" style="border-radius:10px">Close</button>
+      <div class="credit" style="padding:2px 0 0;border:0">Made By Luni</div>
     </div>
   </div>
 </div>
@@ -416,6 +425,7 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
   requestAnimationFrame(pad);
 
   /* ---------- start ---------- */
+  console.log('Stream Deck TV - Made By Luni');
   const lu=store.get('lastUrl'); if(lu) $('#url').value=lu;
   const lp=store.get('proxy'); if(lp) $('#proxy').value=lp;
   applyFilter(); wake();
