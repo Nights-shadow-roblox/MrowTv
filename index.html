@@ -88,6 +88,15 @@ body.ui .ov{opacity:1;pointer-events:auto}
 .mt b{display:block;font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mt small{display:block;font-size:12px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .more{width:100%;margin:8px 0;padding:12px;border-radius:10px;border:1px solid var(--line);background:rgba(255,255,255,.06)}
+#find{position:absolute;inset:0;z-index:30;display:none;justify-content:center;align-items:flex-start;background:rgba(0,0,0,.66);backdrop-filter:blur(8px);padding:calc(env(safe-area-inset-top) + 7vh) 14px 14px}
+#find.open{display:flex}
+.fbox{width:min(660px,100%);max-height:82vh;background:#10152a;border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px}
+#fq{font-size:17px;padding:14px 16px}
+#fres{overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.lg.pl{font-size:11px;letter-spacing:.04em}
+.ch.sel{background:rgba(122,167,255,.18);border-color:var(--accent)}
+mark{background:transparent;color:var(--accent);font-weight:700}
+.fhint{font-size:11px;color:var(--mute);text-align:center;letter-spacing:.04em}
 .empty{padding:30px 20px;color:var(--mute);font-size:13px;line-height:1.6}
 
 /* sources */
@@ -108,7 +117,7 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
 .drop:hover,.drop:focus-within{border-color:var(--accent);color:var(--text)}
 .drop input{position:absolute;opacity:0;width:1px;height:1px}
 
-@media (max-width:700px){.brand i{display:none}.pill{padding:9px 14px}#clock{display:none}.lg{width:46px;height:46px}}
+@media (max-width:700px){#top{flex-wrap:wrap;gap:8px}.sp{display:none}.brand i{display:none}.pill{padding:9px 14px}#clock{display:none}.lg{width:46px;height:46px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
@@ -123,6 +132,7 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
   <div id="top" class="ov">
     <span class="brand">Stream Deck TV <i>Made By Luni</i></span>
     <button class="pill primary" id="bGuide">Guide</button>
+    <button class="pill" id="bFind">Search</button>
     <button class="pill" id="bSrc">Sources</button>
     <span class="sp"></span>
     <button class="pill" id="bPlay">Pause</button>
@@ -136,18 +146,26 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
     <div class="rowo">
       <div id="num">--</div>
       <div class="lg" id="lg">TV</div>
-      <div class="grow"><div id="nm">Stream Deck TV</div><div id="gp">Up and Down change channel. Numbers jump to a channel.</div></div>
+      <div class="grow"><div id="nm">Stream Deck TV</div><div id="gp">Up and Down change channel. Press / to search.</div></div>
       <span class="badge" id="live" hidden>LIVE</span>
     </div>
   </div>
 
   <aside id="guide" aria-label="Channel guide">
     <div class="gh"><h2>Guide</h2><span id="count">No playlist</span></div>
-    <input id="q" class="field" type="search" placeholder="Search channels" autocomplete="off">
+    <input id="q" class="field" type="search" placeholder="Filter this list" autocomplete="off">
     <div id="chips"></div>
     <div id="list" role="listbox"></div>
     <div class="credit">Made By Luni</div>
   </aside>
+
+  <div id="find" role="dialog" aria-modal="true" aria-label="Search">
+    <div class="fbox">
+      <input id="fq" class="field" type="search" placeholder="Search channels, groups, numbers or actions" autocomplete="off" spellcheck="false">
+      <div id="fres" role="listbox"></div>
+      <div class="fhint" id="fhint">Up and Down to move, Enter to open, Esc to close</div>
+    </div>
+  </div>
 
   <div id="modal" role="dialog" aria-modal="true" aria-label="Sources">
     <div class="box">
@@ -186,12 +204,12 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
   const PAGE=200;
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,x){try{localStorage.setItem(k,x)}catch(e){}}};
-  const guideOpen=()=>guide.classList.contains('open'), modalOpen=()=>modal.classList.contains('open');
+  const guideOpen=()=>guide.classList.contains('open'), modalOpen=()=>modal.classList.contains('open'), findOpen=()=>$('#find').classList.contains('open');
 
   /* ---------- overlay visibility ---------- */
   function wake(){
     body.classList.add('ui'); clearTimeout(uiT);
-    uiT=setTimeout(()=>{ if(!guideOpen()&&!modalOpen()&&!v.paused&&cur>=0) body.classList.remove('ui') },4500);
+    uiT=setTimeout(()=>{ if(!guideOpen()&&!modalOpen()&&!findOpen()&&!v.paused&&cur>=0) body.classList.remove('ui') },4500);
   }
   ['mousemove','mousedown','touchstart','keydown'].forEach(ev=>document.addEventListener(ev,wake,{passive:true}));
   function clock(){const d=new Date();$('#clock').textContent=d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}
@@ -250,19 +268,20 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
   }
   $('#chips').addEventListener('click',e=>{const b=e.target.closest('.chip');if(!b)return;group=b.dataset.g;$$('.chip').forEach(c=>c.setAttribute('aria-pressed',c===b));applyFilter()});
 
-  async function loadList(){
+  let srcLabel='';
+  async function loadList(direct){
     const u=$('#url').value.trim(); if(!u){say('Enter a playlist link first.');return}
     store.set('lastUrl',u); store.set('proxy',$('#proxy').value); say('Loading playlist...',true);
     try{
-      const r=await fetch(viaProxy(u)); if(!r.ok) throw new Error('server answered '+r.status);
+      const r=await fetch(direct===true?u:viaProxy(u)); if(!r.ok) throw new Error('server answered '+r.status);
       const t=await r.text(); if(!t.includes('#EXT')) throw new Error('not an M3U playlist');
       if(isMedia(t)){closeModal();playStream(u,u.split('/').pop().split('?')[0]||'Stream');return}
       const arr=parseM3U(t); if(!arr.length) throw new Error('no entries found');
-      setChannels(arr,'link');
+      addSource(u,arr.length,srcLabel);srcLabel='';setChannels(arr,'link');
     }catch(e){say('Could not load the playlist ('+e.message+'). If the host blocks browser requests, add a CORS proxy, or paste the playlist text in the Paste tab.')}
   }
   function playStream(u,name){all=[{name:name,logo:'',group:'Direct',url:u}];group='';buildChips();applyFilter();play(0)}
-  $('#loadList').onclick=loadList;
+  $('#loadList').onclick=()=>loadList();
   $('#url').addEventListener('keydown',e=>{if(e.key==='Enter')loadList()});
   $('#playUrl').onclick=()=>{const u=$('#url').value.trim();if(!u){say('Enter a stream link first.');return}store.set('lastUrl',u);closeModal();playStream(u,u.split('/').pop().split('?')[0]||'Stream')};
   $('#loadPaste').onclick=()=>{const a=parseM3U($('#paste').value);if(!a.length){say('No entries found in the pasted text.');return}setChannels(a,'pasted text')};
@@ -278,8 +297,8 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
 
   /* ---------- guide list ---------- */
   function applyFilter(){
-    const q=$('#q').value.trim().toLowerCase();
-    view=all.filter(c=>(!group||c.group===group)&&(!q||c.name.toLowerCase().includes(q)));
+    reindex(); const tk=norm($('#q').value).split(/\s+/).filter(Boolean), pool=group?all.filter(c=>c.group===group):all;
+    if(tk.length){const r=[];for(const c of pool){const sc=scoreCh(c,c._i,tk);if(sc>0)r.push([sc,c])}r.sort((a,b)=>b[0]-a[0]);view=r.map(x=>x[1])}else view=pool;
     shown=0; listEl.innerHTML=''; renderMore();
     $('#count').textContent=all.length?view.length+' of '+all.length:'No playlist';
     if(!view.length) listEl.innerHTML='<div class="empty">'+(all.length?'No channels match.':'No playlist loaded yet. Open Sources to add one.')+'</div>';
@@ -289,7 +308,7 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
     const old=listEl.querySelector('.more'); if(old) old.remove();
     const f=document.createDocumentFragment();
     view.slice(shown,shown+PAGE).forEach(c=>{
-      const b=document.createElement('button'), n=all.indexOf(c);
+      const b=document.createElement('button'), n=c._i;
       b.className='ch'; b.dataset.n=n; b.setAttribute('role','option'); b.setAttribute('aria-current',n===cur);
       b.innerHTML='<span class="cn">'+(n+1)+'</span><span class="lg">'+logoHTML(c)+'</span><span class="mt"><b>'+esc(c.name)+'</b><small>'+esc(c.group)+'</small></span>';
       f.appendChild(b);
@@ -372,6 +391,14 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
   /* ---------- keyboard and remote ---------- */
   document.addEventListener('keydown',e=>{
     const t=e.target, typing=t.matches('input:not([type=range]),textarea,select');
+    if((e.key==='k'||e.key==='K')&&(e.ctrlKey||e.metaKey)){e.preventDefault();openFind();return}
+    if(findOpen()){
+      if(e.key==='Escape'||e.key==='GoBack'){e.preventDefault();closeFind()}
+      else if(e.key==='ArrowDown'){e.preventDefault();setSel(Math.min(fSel+1,fItems.length-1))}
+      else if(e.key==='ArrowUp'){e.preventDefault();setSel(Math.max(fSel-1,0))}
+      else if(e.key==='Enter'){e.preventDefault();if(fItems[fSel])runItem(fItems[fSel])}
+      return;
+    }
     if(modalOpen()){if(e.key==='Escape'||e.key==='GoBack'){closeModal()}return}
     if(typing){
       if(e.key==='Escape'){t.blur()}
@@ -399,7 +426,7 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
       case 'f':case 'F':goFs();break;
       case ' ':e.preventDefault();togglePlay();break;
       case 'Backspace':case 'l':case 'L':if(last>=0)play(last);break;
-      case '/':e.preventDefault();openGuide();setTimeout(()=>$('#q').focus(),60);break;
+      case '/':e.preventDefault();openFind();break;
     }
   });
 
@@ -423,6 +450,129 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
     requestAnimationFrame(pad);
   }
   requestAnimationFrame(pad);
+
+  /* ---------- playlist catalog and saved sources ---------- */
+  const IPTV='https://iptv-org.github.io/iptv/';
+  const CAT=(()=>{
+    const out=[{n:'All channels',k:'iptv-org everything worldwide main index',u:IPTV+'index.m3u'}];
+    const add=(pre,dir,list)=>list.split(',').forEach(x=>{const a=x.split(':');out.push({n:pre+': '+a[1],k:'iptv-org '+a[0],u:IPTV+dir+'/'+a[0]+'.m3u'})});
+    add('Category','categories','news:News,movies:Movies,music:Music,sports:Sports,kids:Kids,entertainment:Entertainment,documentary:Documentary,general:General,comedy:Comedy,family:Family,education:Education,business:Business,lifestyle:Lifestyle,food:Food,fashion:Fashion,history:History,hobby:Hobby,classic:Classic,religious:Religious,local:Local,legislative:Legislative,shop:Shopping,auto:Auto');
+    add('Country','countries','us:United States,uk:United Kingdom,ca:Canada,au:Australia,nz:New Zealand,ie:Ireland,de:Germany,fr:France,es:Spain,it:Italy,pt:Portugal,nl:Netherlands,be:Belgium,ch:Switzerland,at:Austria,se:Sweden,no:Norway,dk:Denmark,fi:Finland,pl:Poland,cz:Czech Republic,ro:Romania,bg:Bulgaria,gr:Greece,tr:Turkey,ru:Russia,ua:Ukraine,in:India,pk:Pakistan,bd:Bangladesh,cn:China,jp:Japan,kr:South Korea,vn:Vietnam,th:Thailand,id:Indonesia,my:Malaysia,ph:Philippines,sg:Singapore,ae:United Arab Emirates,sa:Saudi Arabia,eg:Egypt,il:Israel,za:South Africa,ng:Nigeria,ke:Kenya,mx:Mexico,br:Brazil,ar:Argentina,cl:Chile,co:Colombia,pe:Peru,ve:Venezuela,al:Albania,af:Afghanistan,kh:Cambodia');
+    add('Language','languages','eng:English,spa:Spanish,fra:French,deu:German,por:Portuguese,ita:Italian,rus:Russian,ara:Arabic,hin:Hindi,zho:Chinese,jpn:Japanese,kor:Korean,tur:Turkish');
+    return out;
+  })();
+  function savedSources(){try{return JSON.parse(store.get('sources')||'[]')}catch(e){return[]}}
+  function addSource(u,c,label){
+    let n=label||u;
+    if(!label){try{const x=new URL(u);n=x.hostname+x.pathname.replace(/\/$/,'')}catch(e){}}
+    store.set('sources',JSON.stringify([{u:u,n:n,c:c}].concat(savedSources().filter(x=>x.u!==u)).slice(0,12)));
+  }
+
+  /* ---------- search ---------- */
+  const norm=s=>String(s==null?'':s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const rxEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  const tokensOf=q=>norm(q).split(/\s+/).filter(Boolean);
+  function reindex(){all.forEach((c,i)=>{c._i=i})}
+  function prep(c){if(c._n===undefined){c._n=norm(c.name);c._g=norm(c.group);let h='';try{h=new URL(c.url,location.href).hostname}catch(e){}c._h=norm(h)}}
+  function subseq(s,t){let j=0;for(let i=0;i<s.length&&j<t.length;i++)if(s[i]===t[j])j++;return j===t.length}
+  function textScore(text,t){if(text===t)return 100;if(text.startsWith(t))return 80;if((' '+text).includes(' '+t))return 65;if(text.includes(t))return 45;return 0}
+  function scoreCh(c,i,tokens){
+    prep(c); let total=0;
+    for(const t of tokens){
+      let s=textScore(c._n,t);
+      if(/^\d+$/.test(t)){const n=String(i+1);s=Math.max(s,n===t?95:(n.startsWith(t)?25:0))}
+      if(!s){const g=textScore(c._g,t);if(g)s=Math.min(30,g/3)}
+      if(!s&&c._h.includes(t))s=12;
+      if(!s&&t.length>=3&&subseq(c._n,t))s=8;
+      if(!s)return 0;
+      total+=s;
+    }
+    return Math.max(1,total-c._n.length*0.02);
+  }
+  function hl(text,tokens){
+    const t=String(text);
+    if(!tokens.length)return esc(t);
+    const re=new RegExp('('+tokens.map(rxEsc).join('|')+')','gi');
+    return t.split(re).map((p,i)=>i%2?'<mark>'+esc(p)+'</mark>':esc(p)).join('');
+  }
+  const recent=()=>{try{return JSON.parse(store.get('recent')||'[]')}catch(e){return[]}};
+  function saveRecent(q){if(!q)return;const r=[q].concat(recent().filter(x=>x!==q)).slice(0,6);store.set('recent',JSON.stringify(r))}
+  const actions=()=>[
+    {n:'Open guide',k:'guide channel list browse',run:openGuide},
+    {n:'Sources',k:'playlist load link paste local file add m3u',run:openModal},
+    {n:v.paused?'Play':'Pause',k:'pause resume',run:()=>togglePlay()},
+    {n:v.muted?'Unmute':'Mute',k:'sound volume audio',run:()=>toggleMute()},
+    {n:'Fullscreen',k:'full screen',run:()=>goFs()},
+    {n:'Next channel',k:'up forward',run:()=>step(1)},
+    {n:'Previous channel',k:'down back',run:()=>step(-1)},
+    {n:'Last channel',k:'recall previous',run:()=>{if(last>=0)play(last)}}
+  ];
+  let fItems=[], fSel=0;
+  function openFind(){
+    modal.classList.remove('open'); $('#find').classList.add('open'); body.classList.add('ui');
+    $('#fq').value=''; refreshFind(); setTimeout(()=>$('#fq').focus(),30);
+  }
+  function closeFind(){$('#find').classList.remove('open');$('#fq').blur();wake()}
+  function plMatches(tk){
+    const pool=savedSources().map(x=>({n:x.n,u:x.u,sub:'Saved - '+x.c+' channels',direct:false,_b:50,_x:norm(x.n+' '+x.u)}))
+      .concat(CAT.map(c=>({n:c.n,u:c.u,sub:'Public playlist - iptv-org',direct:true,_b:0,_x:norm(c.n+' '+c.k+' '+c.u)})));
+    const out=pool.filter(x=>tk.every(t=>_in(x._x,t)));
+    out.forEach(x=>{const nm=norm(x.n.replace(/^[^:]*: /,''));x._s=x._b+tk.reduce((a,t)=>a+textScore(nm,t),0)});
+    return out.sort((a,b)=>b._s-a._s);
+  }
+  const _in=(h,t)=>h.includes(t);
+  function refreshFind(){
+    reindex();
+    const q=$('#fq').value, all0=tokensOf(q), el=$('#fres'), raw=q.trim(); let total=0, plN=0, plMode=false;
+    const tokens=all0.filter(t=>{if(/^(m3u8?|playlists?|iptv)$/.test(t)){plMode=true;return false}return true});
+    fItems=[];
+    if(/^https?:\/\//i.test(raw)){
+      fItems.push({t:'url',u:raw,mode:'list'});
+      fItems.push({t:'url',u:raw,mode:'stream'});
+    }
+    if(!all0.length){
+      recent().forEach(r=>fItems.push({t:'rec',q:r}));
+      savedSources().slice(0,4).forEach(x=>fItems.push({t:'pl',n:x.n,u:x.u,sub:'Saved - '+x.c+' channels',direct:false}));
+      actions().forEach(a=>fItems.push({t:'act',a}));
+    }else if(!/^https?:\/\//i.test(raw)){
+      const pls=plMatches(tokens); plN=pls.length;
+      const plItems=pls.slice(0,plMode?40:8).map(x=>({t:'pl',n:x.n,u:x.u,sub:x.sub,direct:x.direct}));
+      const chs=[];
+      if(tokens.length||!plMode){for(const c of all){const sc=scoreCh(c,c._i,tokens);if(sc>0)chs.push([sc,c])}}
+      chs.sort((a,b)=>b[0]-a[0]); total=chs.length;
+      const chItems=(tokens.length?chs:[]).slice(0,60).map(x=>({t:'ch',c:x[1]}));
+      if(plMode){plItems.forEach(i=>fItems.push(i));chItems.forEach(i=>fItems.push(i))}
+      else{chItems.forEach(i=>fItems.push(i));plItems.forEach(i=>fItems.push(i))}
+      actions().filter(a=>all0.every(t=>norm(a.n+' '+a.k).includes(t))).forEach(a=>fItems.push({t:'act',a}));
+    }
+    fSel=0;
+    const bits=[]; if(total)bits.push(Math.min(total,60)+' of '+total+' channels'); if(plN)bits.push(plN+' playlists');
+    $('#fhint').textContent=all0.length?(bits.length?bits.join(', ')+'. Enter to open.':'No matches'):'Recent searches and actions. Type to search channels, or add "m3u" to find playlists. Paste a link to load it.';
+    if(!fItems.length){el.innerHTML='<div class="empty">'+(all.length?'No matches. Try fewer letters, a group name, a channel number, or "m3u" to find playlists.':'No playlist loaded yet. Search "m3u" to find public playlists, or open Sources.')+'</div>';return}
+    el.innerHTML=fItems.map((it,k)=>{
+      const cls='ch'+(k===0?' sel':''), head='<button class="'+cls+'" data-k="'+k+'" role="option">';
+      if(it.t==='ch'){const c=it.c;return head+'<span class="cn">'+(c._i+1)+'</span><span class="lg">'+logoHTML(c)+'</span><span class="mt"><b>'+hl(c.name,tokens)+'</b><small>'+hl(c.group,tokens)+'</small></span></button>'}
+      if(it.t==='pl')return head+'<span class="cn"></span><span class="lg pl">M3U</span><span class="mt"><b>'+hl(it.n,tokens)+'</b><small>'+esc(it.sub)+'</small></span></button>';
+      if(it.t==='url')return head+'<span class="cn"></span><span class="lg pl">URL</span><span class="mt"><b>'+(it.mode==='list'?'Load as playlist':'Play as stream')+'</b><small>'+esc(it.u)+'</small></span></button>';
+      if(it.t==='rec')return head+'<span class="cn"></span><span class="lg">&#8635;</span><span class="mt"><b>'+esc(it.q)+'</b><small>Recent search</small></span></button>';
+      return head+'<span class="cn"></span><span class="lg">&gt;</span><span class="mt"><b>'+esc(it.a.n)+'</b><small>Action</small></span></button>';
+    }).join('');
+  }
+  function setSel(k){
+    fSel=k; $$('#fres .ch').forEach((b,i)=>b.classList.toggle('sel',i===k));
+    const b=$$('#fres .ch')[k]; if(b)b.scrollIntoView({block:'nearest'});
+  }
+  function runItem(it){
+    if(it.t==='rec'){$('#fq').value=it.q;refreshFind();return}
+    if(it.t==='act'){closeFind();it.a.run();return}
+    if(it.t==='pl'){closeFind();srcLabel=it.direct?it.n:'';$('#url').value=it.u;loadList(it.direct);return}
+    if(it.t==='url'){closeFind();$('#url').value=it.u;if(it.mode==='list')loadList(false);else{store.set('lastUrl',it.u);playStream(it.u,it.u.split('/').pop().split('?')[0]||'Stream')}return}
+    saveRecent($('#fq').value.trim()); closeFind(); closeGuide(); play(it.c._i);
+  }
+  $('#fq').addEventListener('input',refreshFind);
+  $('#fres').addEventListener('click',e=>{const b=e.target.closest('.ch');if(b&&fItems[+b.dataset.k])runItem(fItems[+b.dataset.k])});
+  $('#find').addEventListener('click',e=>{if(e.target.id==='find')closeFind()});
+  $('#bFind').onclick=openFind;
 
   /* ---------- start ---------- */
   console.log('Stream Deck TV - Made By Luni');
