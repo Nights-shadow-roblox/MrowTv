@@ -69,7 +69,14 @@ body.ui .ov{opacity:1;pointer-events:auto}
 /* guide */
 #guide{position:absolute;top:0;bottom:0;left:0;width:min(470px,94vw);background:var(--glass);backdrop-filter:blur(22px);border-right:1px solid var(--line);display:flex;flex-direction:column;transform:translateX(-102%);transition:transform .28s cubic-bezier(.2,.8,.2,1);padding-top:env(safe-area-inset-top)}
 #guide.open{transform:none}
-.gh{padding:20px 20px 10px;display:flex;align-items:baseline;justify-content:space-between}
+.gh{padding:16px 18px 10px;display:flex;align-items:center;gap:12px}
+.gh h2{flex:1}
+.back{display:inline-flex;align-items:center;gap:6px;padding:10px 16px 10px 12px;border-radius:999px;background:rgba(255,255,255,.1);border:1px solid var(--line);font-size:13px;font-weight:600;white-space:nowrap;flex:none}
+.back:hover{background:rgba(255,255,255,.2)}
+.back svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.frow{display:flex;gap:10px;align-items:center}
+.frow .field{flex:1;min-width:0}
+.mh{display:flex;align-items:center;gap:12px}
 .gh h2{font-size:20px;font-weight:700}
 .gh span{font-size:12px;color:var(--mute)}
 .field{width:100%;padding:12px 14px;background:rgba(255,255,255,.07);border:1px solid var(--line);border-radius:10px;font-size:14px}
@@ -152,7 +159,7 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
   </div>
 
   <aside id="guide" aria-label="Channel guide">
-    <div class="gh"><h2>Guide</h2><span id="count">No playlist</span></div>
+    <div class="gh"><button class="back" id="gBack" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Back</button><h2>Guide</h2><span id="count">No playlist</span></div>
     <input id="q" class="field" type="search" placeholder="Filter this list" autocomplete="off">
     <div id="chips"></div>
     <div id="list" role="listbox"></div>
@@ -161,7 +168,7 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
 
   <div id="find" role="dialog" aria-modal="true" aria-label="Search">
     <div class="fbox">
-      <input id="fq" class="field" type="search" placeholder="Search channels, groups, numbers or actions" autocomplete="off" spellcheck="false">
+      <div class="frow"><button class="back" id="fBack" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Back</button><input id="fq" class="field" type="search" placeholder="Search channels, groups, numbers or actions" autocomplete="off" spellcheck="false"></div>
       <div id="fres" role="listbox"></div>
       <div class="fhint" id="fhint">Up and Down to move, Enter to open, Esc to close</div>
     </div>
@@ -169,7 +176,7 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
 
   <div id="modal" role="dialog" aria-modal="true" aria-label="Sources">
     <div class="box">
-      <h2>Sources</h2>
+      <div class="mh"><button class="back" id="mBack" aria-label="Back"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Back</button><h2>Sources</h2></div>
       <div class="tabs">
         <button class="tab" aria-selected="true" data-tab="url">Link</button>
         <button class="tab" aria-selected="false" data-tab="paste">Paste</button>
@@ -189,7 +196,7 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
         <label class="drop"><input id="file" type="file" multiple accept="video/*,audio/*,.m3u,.m3u8,.mp4,.mkv,.webm,.mov,.ts,.mp3,.aac,.txt"><span>Choose video, audio or .m3u files from this device</span></label>
         <p class="hint">Video files play directly. An .m3u file is read as a playlist. Files stay on your device.</p>
       </div>
-      <button class="pill" id="closeModal" style="border-radius:10px">Close</button>
+      <button class="pill" id="closeModal" style="border-radius:10px">Back</button>
       <div class="credit" style="padding:2px 0 0;border:0">Made By Luni</div>
     </div>
   </div>
@@ -220,17 +227,38 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
   const hush=()=>{$('#toast').className=''};
 
   /* ---------- panels ---------- */
+  /* back handling: system Back (Android, TV remote, VR) closes the top panel */
+  let stack=[], histHas=false, skipPop=0, fromPop=false, syncQ=false;
+  const isBack=e=>e.key==='Escape'||e.key==='GoBack'||e.key==='BrowserBack'||e.key==='XF86Back'||e.keyCode===4;
+  function syncHist(){
+    if(syncQ) return; syncQ=true;
+    Promise.resolve().then(()=>{
+      syncQ=false;
+      if(stack.length&&!histHas){try{history.pushState({tv:1},'')}catch(e){}histHas=true}
+      else if(!stack.length&&histHas){histHas=false;skipPop++;try{history.go(-1)}catch(e){skipPop--}}
+    });
+  }
+  function pushPanel(n){if(!stack.includes(n))stack.push(n);syncHist()}
+  function popPanel(n){if(fromPop)return;const i=stack.lastIndexOf(n);if(i>=0)stack.splice(i,1);syncHist()}
+  window.addEventListener('popstate',()=>{
+    if(skipPop>0){skipPop--;return}
+    histHas=false;
+    const top=stack.pop(); if(!top) return;
+    fromPop=true;
+    if(top==='find')closeFind();else if(top==='modal')closeModal();else if(top==='guide')closeGuide();
+    fromPop=false; syncHist();
+  });
   function openGuide(){
     if(!all.length){openModal();return}
-    guide.classList.add('open'); wake();
+    guide.classList.add('open'); pushPanel('guide'); wake();
     const t=listEl.querySelector('.ch[aria-current=true]')||listEl.querySelector('.ch');
     if(t){t.focus({preventScroll:true});t.scrollIntoView({block:'center'})}
   }
-  function closeGuide(){guide.classList.remove('open');if(document.activeElement)document.activeElement.blur();wake()}
-  function openModal(){closeGuide();modal.classList.add('open');body.classList.add('ui');setTimeout(()=>$('#url').focus(),50)}
-  function closeModal(){modal.classList.remove('open');wake()}
+  function closeGuide(){guide.classList.remove('open');popPanel('guide');if(document.activeElement)document.activeElement.blur();wake()}
+  function openModal(){closeGuide();modal.classList.add('open');pushPanel('modal');body.classList.add('ui');setTimeout(()=>{const f=matchMedia('(pointer:fine)').matches?$('#url'):$('#mBack');if(f)f.focus()},50)}
+  function closeModal(){modal.classList.remove('open');popPanel('modal');wake()}
   $('#bGuide').onclick=()=>guideOpen()?closeGuide():openGuide();
-  $('#bSrc').onclick=openModal; $('#closeModal').onclick=closeModal;
+  $('#bSrc').onclick=openModal; $('#closeModal').onclick=closeModal; $('#mBack').onclick=closeModal; $('#gBack').onclick=closeGuide;
   modal.addEventListener('click',e=>{if(e.target===modal)closeModal()});
   $$('.tab').forEach(t=>t.addEventListener('click',()=>{
     $$('.tab').forEach(x=>x.setAttribute('aria-selected',x===t));
@@ -388,31 +416,37 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
   $('#card').addEventListener('click',()=>{if(!all.length)openModal();else openGuide()});
   v.addEventListener('click',()=>{if(body.classList.contains('ui')&&!v.paused&&matchMedia('(pointer:fine)').matches)togglePlay()});
 
+  let gx=null;
+  guide.addEventListener('touchstart',e=>{gx=e.target.closest('#chips')?null:e.touches[0].clientX},{passive:true});
+  guide.addEventListener('touchend',e=>{if(gx===null)return;const dx=e.changedTouches[0].clientX-gx;gx=null;if(dx<-80)closeGuide()});
+
   /* ---------- keyboard and remote ---------- */
   document.addEventListener('keydown',e=>{
     const t=e.target, typing=t.matches('input:not([type=range]),textarea,select');
     if((e.key==='k'||e.key==='K')&&(e.ctrlKey||e.metaKey)){e.preventDefault();openFind();return}
     if(findOpen()){
-      if(e.key==='Escape'||e.key==='GoBack'){e.preventDefault();closeFind()}
+      if(isBack(e)){e.preventDefault();closeFind()}
       else if(e.key==='ArrowDown'){e.preventDefault();setSel(Math.min(fSel+1,fItems.length-1))}
       else if(e.key==='ArrowUp'){e.preventDefault();setSel(Math.max(fSel-1,0))}
       else if(e.key==='Enter'){e.preventDefault();if(fItems[fSel])runItem(fItems[fSel])}
       return;
     }
-    if(modalOpen()){if(e.key==='Escape'||e.key==='GoBack'){closeModal()}return}
+    if(modalOpen()){if(isBack(e)){e.preventDefault();closeModal()}return}
     if(typing){
       if(e.key==='Escape'){t.blur()}
       else if(e.key==='ArrowDown'&&t.id==='q'){const f=listEl.querySelector('.ch');if(f){e.preventDefault();f.focus()}}
+      else if(e.key==='ArrowUp'&&t.id==='q'){e.preventDefault();$('#gBack').focus()}
       return;
     }
     if(/^[0-9]$/.test(e.key)){typeDigit(e.key);return}
     if(e.key==='Enter'&&digits){commitDigits();return}
     if(guideOpen()){
+      if(t.id==='gBack'&&e.key==='ArrowDown'){e.preventDefault();$('#q').focus();return}
       if(t.classList.contains('ch')){
         if(e.key==='ArrowDown'){e.preventDefault();(t.nextElementSibling||t).focus()}
         else if(e.key==='ArrowUp'){e.preventDefault();const p=t.previousElementSibling;(p||$('#q')).focus()}
       }
-      if(e.key==='Escape'||e.key==='ArrowRight'&&t.classList.contains('ch')||e.key==='GoBack'||e.key==='g'||e.key==='G'){e.preventDefault();closeGuide()}
+      if(isBack(e)||e.key==='ArrowRight'&&t.classList.contains('ch')||e.key==='g'||e.key==='G'){e.preventDefault();closeGuide()}
       else if(e.key==='/'){e.preventDefault();$('#q').focus()}
       return;
     }
@@ -443,7 +477,7 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
         else step(up?-1:1);
         lock=now+220;
       }else if(b(0)){wake();const a=document.activeElement;if(guideOpen()&&a&&a.classList.contains('ch'))a.click();else if(!guideOpen())openGuide();lock=now+350}
-      else if(b(1)){if(guideOpen())closeGuide();else goFs();lock=now+450}
+      else if(b(1)){if(findOpen())closeFind();else if(modalOpen())closeModal();else if(guideOpen())closeGuide();else goFs();lock=now+450}
       else if(b(2)){toggleMute();lock=now+350}
       else if(b(3)){togglePlay();lock=now+350}
     }
@@ -509,10 +543,10 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
   ];
   let fItems=[], fSel=0;
   function openFind(){
-    modal.classList.remove('open'); $('#find').classList.add('open'); body.classList.add('ui');
+    closeModal(); $('#find').classList.add('open'); pushPanel('find'); body.classList.add('ui');
     $('#fq').value=''; refreshFind(); setTimeout(()=>$('#fq').focus(),30);
   }
-  function closeFind(){$('#find').classList.remove('open');$('#fq').blur();wake()}
+  function closeFind(){$('#find').classList.remove('open');popPanel('find');$('#fq').blur();wake()}
   function plMatches(tk){
     const pool=savedSources().map(x=>({n:x.n,u:x.u,sub:'Saved - '+x.c+' channels',direct:false,_b:50,_x:norm(x.n+' '+x.u)}))
       .concat(CAT.map(c=>({n:c.n,u:c.u,sub:'Public playlist - iptv-org',direct:true,_b:0,_x:norm(c.n+' '+c.k+' '+c.u)})));
@@ -572,7 +606,7 @@ textarea.field{min-height:110px;resize:vertical;font-family:ui-monospace,Menlo,C
   $('#fq').addEventListener('input',refreshFind);
   $('#fres').addEventListener('click',e=>{const b=e.target.closest('.ch');if(b&&fItems[+b.dataset.k])runItem(fItems[+b.dataset.k])});
   $('#find').addEventListener('click',e=>{if(e.target.id==='find')closeFind()});
-  $('#bFind').onclick=openFind;
+  $('#bFind').onclick=openFind; $('#fBack').onclick=closeFind;
 
   /* ---------- start ---------- */
   console.log('Stream Deck TV - Made By Luni');
