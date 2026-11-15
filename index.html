@@ -1,19 +1,19 @@
 <!DOCTYPE html>
-<!-- Stream Deck TV - Made By Luni -->
+<!-- Stream Deck TV - Made By Luni (Ian) -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="author" content="Luni">
-<title>Stream Deck TV - Made By Luni</title>
+<title>Stream Deck TV - Made By Luni (Ian)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=VT323&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700&family=VT323&family=Inter:wght@300;400;600;700&family=Lexend:wght@300;400;600;700&family=Merriweather:wght@300;400;700&family=Space+Mono:wght@400;700&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--zoom:1;--bg:#05070f;--glass:rgba(10,14,28,.82);--line:rgba(255,255,255,.12);--text:#f1f3fb;--mute:#97a0c0;--accent:#7aa7ff;--live:#ff5470;color-scheme:dark}
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;background:#000;overflow:hidden}
-body{font-family:'Sora',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;color:var(--text);user-select:none;-webkit-user-select:none}
+body{font-family:var(--font,'Sora',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif);color:var(--text);user-select:none;-webkit-user-select:none}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
@@ -240,6 +240,57 @@ body.y99 *::-webkit-scrollbar{width:16px;height:16px}
 body.y99 *::-webkit-scrollbar-track{background:repeating-conic-gradient(#c0c0c0 0 25%,#fff 0 50%) 0 0/2px 2px}
 body.y99 *::-webkit-scrollbar-thumb{background:#c0c0c0;border:2px solid;border-color:#fff #404040 #404040 #fff}
 @media (prefers-reduced-motion:reduce){body.y99 #card{animation:none}}
+
+/* secret Terminal style */
+@keyframes blink{50%{opacity:0}}
+body.term{--bg:#000;--glass:#010801;--line:#1d7a12;--text:#8dff7a;--mute:#4fb83f;--live:#ff3b3b;--accent:#39ff14!important;font-family:'IBM Plex Mono','Share Tech Mono',ui-monospace,Menlo,Consolas,monospace}
+body.term #card{background:#000}
+body.term #card::before{background:repeating-linear-gradient(0deg,rgba(57,255,20,.07) 0 1px,transparent 1px 3px)}
+body.term .plate{background:#000;border:1px solid var(--accent);border-radius:0;text-align:left;box-shadow:0 0 18px rgba(57,255,20,.25)}
+body.term .plate h1{font-weight:600;letter-spacing:.08em;color:var(--accent);text-shadow:0 0 10px rgba(57,255,20,.6)}
+body.term .plate h1::before{content:"> "}
+body.term .plate h1::after{content:"_";animation:blink 1s steps(1) infinite}
+body.term .plate .by::before{content:"// "}
+body.term #top{background:#000;border-bottom:1px solid var(--line);padding-bottom:14px}
+body.term .pill,body.term .back,body.term .more,body.term .chip,body.term .tab,body.term .seg button{border-radius:0;background:#000;border:1px solid var(--line);color:var(--text);backdrop-filter:none;font-weight:400;text-shadow:none}
+body.term .pill:hover,body.term .back:hover,body.term .more:hover,body.term .chip:hover,body.term .tab:hover,body.term .seg button:hover,body.term .pill.primary{background:var(--accent);color:#000;border-color:var(--accent)}
+body.term .chip[aria-pressed=true],body.term .tab[aria-selected=true],body.term .seg button[aria-pressed=true]{background:var(--accent);color:#000;border-color:var(--accent)}
+body.term .brand{font-weight:600;color:var(--accent);text-shadow:0 0 8px rgba(57,255,20,.5)}
+body.term .brand::before{content:"$ "}
+body.term .brand i{color:var(--mute);text-shadow:none}
+body.term #clock{color:var(--accent);font-weight:400}
+body.term #osd{background:none}
+body.term .rowo{background:#000;border:1px solid var(--accent);padding:10px 14px;box-shadow:0 0 14px rgba(57,255,20,.2)}
+body.term #num{color:var(--accent);text-shadow:0 0 10px rgba(57,255,20,.6)}
+body.term #nm{color:var(--text)}
+body.term .lg{border-radius:0;background:#000;border:1px solid var(--line)}
+body.term .badge{border-radius:0;color:#000}
+body.term #digits{color:var(--accent);text-shadow:0 0 14px rgba(57,255,20,.7)}
+body.term #toast{background:#000;border-radius:0;border:1px solid var(--line);border-left:4px solid var(--live);backdrop-filter:none}
+body.term #toast.info{border-left-color:var(--accent)}
+body.term #guide{background:rgba(0,0,0,.96);backdrop-filter:none;border-right:1px solid var(--accent)}
+body.term .gh h2,body.term .box h2{color:var(--accent);font-weight:600}
+body.term .gh h2::before,body.term .box h2::before{content:"# "}
+body.term .field{border-radius:0;background:#000;border:1px solid var(--line);caret-color:var(--accent)}
+body.term .ch{border-radius:0}
+body.term .ch:hover{background:rgba(57,255,20,.12)}
+body.term .ch:focus-visible,body.term .ch.sel{background:var(--accent);color:#000;transform:none;border-color:var(--accent)}
+body.term .ch:focus-visible small,body.term .ch.sel small,body.term .ch:focus-visible .cn,body.term .ch.sel .cn{color:rgba(0,0,0,.72)}
+body.term .ch[aria-current=true]{border-left:4px solid var(--accent)}
+body.term .box,body.term .fbox{background:#000;border:1px solid var(--accent);border-radius:0;box-shadow:0 0 20px rgba(57,255,20,.2)}
+body.term mark{background:var(--accent);color:#000}
+body.term .ch.sel mark,body.term .ch:focus-visible mark{background:#000;color:var(--accent)}
+body.term .drop{border-radius:0}
+body.term .tg{border-radius:0;background:#000}
+body.term .tg::after{border-radius:0;background:var(--text)}
+body.term .tg[aria-checked=true]{background:var(--accent);border-color:var(--accent)}
+body.term .tg[aria-checked=true]::after{background:#000}
+body.term .shead{color:var(--accent)}
+body.term .shead::before{content:"## "}
+body.term .credit{color:var(--mute)}
+body.term :focus-visible{outline:2px dashed var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){body.term .plate h1::after{animation:none}}
+
 @media (max-width:700px){#top{flex-wrap:wrap;gap:8px}.sp{display:none}.brand i{display:none}.pill{padding:9px 14px}#clock{display:none}.lg{width:46px;height:46px}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -247,13 +298,13 @@ body.y99 *::-webkit-scrollbar-thumb{background:#c0c0c0;border:2px solid;border-c
 <body class="ui">
 <div id="tv">
   <video id="v" playsinline autoplay></video>
-  <div id="card"><div class="plate"><h1>NO SIGNAL</h1><p>Press OK, tap the screen, or choose Sources to load a playlist, a stream link, or local files.</p><p class="by">Made By Luni</p></div></div>
+  <div id="card"><div class="plate"><h1>NO SIGNAL</h1><p>Press OK, tap the screen, or choose Sources to load a playlist, a stream link, or local files.</p><p class="by">Made By Luni (Ian)</p></div></div>
 
   <div id="digits"></div>
   <div id="toast" role="status"></div>
 
   <div id="top" class="ov">
-    <span class="brand">Stream Deck TV <i>Made By Luni</i></span>
+    <span class="brand">Stream Deck TV <i>Made By Luni (Ian)</i></span>
     <button class="pill primary" id="bGuide">Guide</button>
     <button class="pill" id="bFind">Search</button>
     <button class="pill" id="bSrc">Sources</button>
@@ -280,7 +331,7 @@ body.y99 *::-webkit-scrollbar-thumb{background:#c0c0c0;border:2px solid;border-c
     <input id="q" class="field" type="search" placeholder="Filter this list" autocomplete="off">
     <div id="chips"></div>
     <div id="list" role="listbox"></div>
-    <div class="credit">Made By Luni</div>
+    <button class="credit" id="secret2" type="button" aria-label="Made By Luni (Ian)" style="background:none;border:0;border-top:1px solid var(--line);width:100%;cursor:pointer">Made By Luni (Ian)</button>
   </aside>
 
   <div id="find" role="dialog" aria-modal="true" aria-label="Search">
@@ -297,7 +348,7 @@ body.y99 *::-webkit-scrollbar-thumb{background:#c0c0c0;border:2px solid;border-c
       <div id="sbody"></div>
       <div class="r2"><button class="pill" id="sClear" style="border-radius:10px">Clear saved playlists and searches</button><button class="pill" id="sReset" style="border-radius:10px">Reset settings</button></div>
       <button class="pill" id="sClose" style="border-radius:10px">Back</button>
-      <button class="credit" id="secret" type="button" aria-label="Made By Luni" style="padding:4px 0 0;border:0;background:none;width:100%;cursor:pointer">Made By Luni</button>
+      <button class="credit" id="secret" type="button" aria-label="Made By Luni (Ian)" style="padding:4px 0 0;border:0;background:none;width:100%;cursor:pointer">Made By Luni (Ian)</button>
     </div>
   </div>
 
@@ -324,7 +375,7 @@ body.y99 *::-webkit-scrollbar-thumb{background:#c0c0c0;border:2px solid;border-c
         <p class="hint">Video files play directly. An .m3u file is read as a playlist. Files stay on your device.</p>
       </div>
       <button class="pill" id="closeModal" style="border-radius:10px">Back</button>
-      <div class="credit" style="padding:2px 0 0;border:0">Made By Luni</div>
+      <div class="credit" style="padding:2px 0 0;border:0">Made By Luni (Ian)</div>
     </div>
   </div>
 </div>
@@ -338,8 +389,16 @@ body.y99 *::-webkit-scrollbar-thumb{background:#c0c0c0;border:2px solid;border-c
   const PAGE=200;
   const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,x){try{localStorage.setItem(k,x)}catch(e){}}};
-  const DEF={theme:'modern',accent:'blue',size:'1',scan:false,logos:true,clock:true,h24:false,hide:'5000',mute:false,buf:'30',auto:false};
+  const DEF={theme:'modern',font:'sora',accent:'blue',size:'1',scan:false,logos:true,clock:true,h24:false,hide:'5000',mute:false,buf:'30',auto:false};
   const ACC={blue:'#7aa7ff',mint:'#5fe0b0',amber:'#ffb84d',rose:'#ff7a9c',violet:'#b08cff'};
+  const FONTS={
+    sora:"'Sora',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif",
+    inter:"'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif",
+    lexend:"'Lexend',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif",
+    serif:"'Merriweather',Georgia,'Times New Roman',serif",
+    mono:"'Space Mono',ui-monospace,Menlo,Consolas,monospace",
+    system:"system-ui,-apple-system,'Segoe UI',Roboto,sans-serif"
+  };
   let S=Object.assign({},DEF,(()=>{try{return JSON.parse(store.get('settings')||'{}')}catch(e){return{}}})());
   const guideOpen=()=>guide.classList.contains('open'), modalOpen=()=>modal.classList.contains('open'), findOpen=()=>$('#find').classList.contains('open'), setsOpen=()=>$('#sets').classList.contains('open');
 
@@ -628,7 +687,8 @@ body.y99 *::-webkit-scrollbar-thumb{background:#c0c0c0;border:2px solid;border-c
   /* ---------- settings ---------- */
   const SCHEMA=[
     {sec:'Appearance'},
-    {k:'theme',l:'Style',o:()=>[['modern','Modern'],['classic','Classic 2005']].concat(S.secret?[['y99','1999']]:[])},
+    {k:'theme',l:'Style',o:()=>[['modern','Modern'],['classic','Classic 2005']].concat(S.secret?[['y99','1999']]:[]).concat(S.secretT?[['term','Terminal']]:[])},
+    {k:'font',l:'Font (Modern style)',o:[['sora','Sora'],['inter','Inter'],['lexend','Lexend'],['serif','Serif'],['mono','Mono'],['system','System']]},
     {k:'accent',l:'Accent colour (Modern)',o:[['blue','Blue'],['mint','Mint'],['amber','Amber'],['rose','Rose'],['violet','Violet']]},
     {k:'size',l:'Interface size',o:[['0.85','Small'],['1','Normal'],['1.25','Large'],['1.5','Extra large']]},
     {k:'scan',l:'CRT scanlines',t:1},
@@ -655,16 +715,19 @@ body.y99 *::-webkit-scrollbar-thumb{background:#c0c0c0;border:2px solid;border-c
   }
   function applyS(){
     if(S.theme==='y99'&&!S.secret)S.theme='modern';
+    if(S.theme==='term'&&!S.secretT)S.theme='modern';
     body.classList.toggle('classic',S.theme==='classic');
     body.classList.toggle('y99',S.theme==='y99');
+    body.classList.toggle('term',S.theme==='term');
     body.classList.toggle('scan',!!S.scan);
     body.style.setProperty('--accent',ACC[S.accent]||ACC.blue);
+    body.style.setProperty('--font',FONTS[S.font]||FONTS.sora);
     document.documentElement.style.setProperty('--zoom',S.size);
     $('#clock').style.display=S.clock?'':'none'; clock();
   }
   function change(k,val){
     S[k]=val;
-    if(k==='theme')S.scan=val==='classic'||val==='y99';
+    if(k==='theme')S.scan=val==='classic'||val==='y99'||val==='term';
     try{store.set('settings',JSON.stringify(S))}catch(e){}
     applyS(); refreshSets();
     if(k==='logos'){applyFilter();if(cur>=0)$('#lg').innerHTML=logoHTML(all[cur])}
@@ -679,10 +742,15 @@ body.y99 *::-webkit-scrollbar-thumb{background:#c0c0c0;border:2px solid;border-c
   });
   $('#bSet').onclick=openSettings; $('#sBack').onclick=closeSets; $('#sClose').onclick=closeSets;
   $('#sClear').onclick=()=>{['sources','recent'].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});say('Saved playlists and searches cleared.',true,2500)};
-  $('#sReset').onclick=()=>{S=Object.assign({},DEF);try{store.set('settings',JSON.stringify(S))}catch(e){}applyS();refreshSets();applyFilter();if(cur>=0)$('#lg').innerHTML=logoHTML(all[cur]);say('Settings reset.',true,2500)};
+  $('#sReset').onclick=()=>{S=Object.assign({},DEF);try{store.set('settings',JSON.stringify(S))}catch(e){}applyS();buildSets();applyFilter();if(cur>=0)$('#lg').innerHTML=logoHTML(all[cur]);say('Settings reset.',true,2500)};
   $('#secret').onclick=()=>{
     if(!S.secret){S.secret=true;change('theme','y99');buildSets();say('Secret style unlocked: 1999.',true,2500)}
     else{S.secret=false;change('theme','modern');buildSets();say('Secret style hidden. Style set back to Modern.',true,2500)}
+  };
+  /* secret Terminal style: click the credit in the guide */
+  $('#secret2').onclick=()=>{
+    if(!S.secretT){S.secretT=true;change('theme','term');buildSets();say('Secret style unlocked: Terminal.',true,2500)}
+    else{S.secretT=false;if(S.theme==='term')change('theme','modern');else change('secretT',false);buildSets();say('Terminal style hidden.',true,2500)}
   };
   buildSets();
 
@@ -735,7 +803,7 @@ body.y99 *::-webkit-scrollbar-thumb{background:#c0c0c0;border:2px solid;border-c
   const actions=()=>[
     {n:'Open guide',k:'guide channel list browse',run:openGuide},
     {n:'Sources',k:'playlist load link paste local file add m3u',run:openModal},
-    {n:'Settings',k:'options preferences appearance',run:openSettings},
+    {n:'Settings',k:'options preferences appearance font',run:openSettings},
     {n:S.theme==='classic'?'Switch to Modern style':'Switch to Classic 2005 style',k:'theme style retro crt old tv',run:()=>change('theme',S.theme==='classic'?'modern':'classic')},
     {n:v.paused?'Play':'Pause',k:'pause resume',run:()=>togglePlay()},
     {n:v.muted?'Unmute':'Mute',k:'sound volume audio',run:()=>toggleMute()},
@@ -812,7 +880,7 @@ body.y99 *::-webkit-scrollbar-thumb{background:#c0c0c0;border:2px solid;border-c
   $('#bFind').onclick=openFind; $('#fBack').onclick=closeFind;
 
   /* ---------- start ---------- */
-  console.log('Stream Deck TV - Made By Luni');
+  console.log('Stream Deck TV - Made By Luni (Ian)');
   const lu=store.get('lastUrl'); if(lu) $('#url').value=lu;
   const lp=store.get('proxy'); if(lp) $('#proxy').value=lp;
   applyS();
