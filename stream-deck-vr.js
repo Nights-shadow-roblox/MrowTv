@@ -1,13 +1,13 @@
 /* Stream Deck TV - VR add-on (Meta Quest / WebXR) */
 (function(){
 const T=window.SDTV;if(!T)return;
-const CSS="#bVR{background:linear-gradient(135deg,#6f9bff,#a07bff);color:#fff;border-color:transparent}\n/* VR Glass style */\nbody.vr{--glass:rgba(18,20,44,.6);--line:rgba(255,255,255,.22);--mute:#b7bedf}\nbody.vr :is(.pill,.back,.more,.chip,.tab,.seg button,.sab){border-radius:22px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);backdrop-filter:blur(18px);padding:14px 22px;font-size:15px}\nbody.vr .pill.primary,body.vr #bVR{background:linear-gradient(135deg,#6f9bff,#a07bff);color:#fff;border-color:transparent}\nbody.vr :is(#guide,.box,.fbox){border-radius:28px;background:rgba(18,20,44,.6);backdrop-filter:blur(30px);border:1px solid rgba(255,255,255,.2);box-shadow:0 20px 60px rgba(0,0,0,.5)}\nbody.vr #guide{top:4vh;bottom:4vh;left:2vw;height:auto}\nbody.vr .ch{border-radius:18px;padding:14px 16px}\nbody.vr #osd{background:none}\nbody.vr .rowo{background:rgba(18,20,44,.55);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.2);border-radius:28px;padding:14px 22px}\nbody.vr #top{background:linear-gradient(rgba(0,0,0,.45),transparent)}\nbody.vr :is(.lg,.field,#toast){border-radius:16px}\nbody.vr .tg{border-radius:999px}\n";
-const DF={vrEnv:'cinema',vrSize:'7',vrDist:'5',vrCurve:'0.5',vrHeight:'0',vrBright:'1',vrLight:'0.5',vrMenu:'1'};
+const CSS="/* VR Glass style */\nbody.vr{--glass:rgba(18,20,44,.6);--line:rgba(255,255,255,.22);--mute:#b7bedf}\nbody.vr :is(.pill,.back,.more,.chip,.tab,.seg button,.sab){border-radius:22px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);backdrop-filter:blur(18px);padding:14px 22px;font-size:15px}\nbody.vr .pill.primary,body.vr #bVR{background:linear-gradient(135deg,#6f9bff,#a07bff);color:#fff;border-color:transparent}\nbody.vr :is(#guide,.box,.fbox){border-radius:28px;background:rgba(18,20,44,.6);backdrop-filter:blur(30px);border:1px solid rgba(255,255,255,.2);box-shadow:0 20px 60px rgba(0,0,0,.5)}\nbody.vr #guide{top:4vh;bottom:4vh;left:2vw;height:auto}\nbody.vr .ch{border-radius:18px;padding:14px 16px}\nbody.vr #osd{background:none}\nbody.vr .rowo{background:rgba(18,20,44,.55);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.2);border-radius:28px;padding:14px 22px}\nbody.vr #top{background:linear-gradient(rgba(0,0,0,.45),transparent)}\nbody.vr :is(.lg,.field,#toast){border-radius:16px}\nbody.vr .tg{border-radius:999px}\n";
+const DF={vrEnv:'galaxy',vrSize:'7',vrDist:'5',vrCurve:'0.5',vrHeight:'0',vrBright:'1',vrLight:'0.5',vrMenu:'1'};
 const S=()=>T.S(),n=k=>+S()[k],fill=()=>{const s=S();for(const k in DF)if(s[k]===undefined)s[k]=DF[k]};fill();
 const st=document.createElement('style');st.textContent=CSS;document.head.appendChild(st);
 const btn=document.createElement('button');btn.className='pill';btn.id='bVR';btn.textContent='Enter VR';document.getElementById('bSet').after(btn);
 const OPT={
- vrEnv:{l:'Environment',o:[['cinema','Cinema'],['lounge','Lounge'],['space','Space'],['void','Void']]},
+ vrEnv:{l:'Environment',o:[['galaxy','Galaxy'],['space','Starfield'],['cinema','Cinema'],['lounge','Lounge'],['void','Void']]},
  vrSize:{l:'Screen size',o:[['3','Small'],['5','Medium'],['7','Large'],['10','Huge'],['16','Giant']]},
  vrDist:{l:'Screen distance',o:[['3','Close'],['5','Normal'],['8','Far'],['12','Very far']]},
  vrCurve:{l:'Screen curve',o:[['0','Flat'],['0.5','Soft'],['1','Curved']]},
@@ -23,7 +23,7 @@ document.getElementById('sReset').addEventListener('click',()=>{fill();vcls();T.
 T.buildSets();
 const loadThree=()=>new Promise((res,rej)=>{if(window.THREE)return res();const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js';s.onload=res;s.onerror=()=>rej(new Error('three.js failed to load'));document.head.appendChild(s)});
 if(navigator.xr)loadThree().catch(()=>{});
-let R,scene,cam,envG,screenM,menu,mtex,cv,ctx,tex,session=null,rays=[],tab='ch',scroll=0,vg='',regions=[],hov='',menuOn=true,dirty=true,aspect=16/9,cs='',place=0,lock=0,lastDraw=0,prevA={},lc={};
+let R,scene,cam,envG,screenM,menu,mtex,cv,ctx,tex,session=null,rays=[],tab='ch',scroll=0,vg='',regions=[],hov='',menuOn=true,dirty=true,aspect=16/9,cs='',place=0,lock=0,lastDraw=0,prevA={},lc={},kp='',lastSeen=-1,prevCh=-1,spin=null,gt=null;
 const VW=1024,VH=704,ROWS=7,sy=()=>Math.max(1.6,n('vrSize')/aspect/2+.3)+n('vrHeight');
 
 async function enter(){
@@ -58,7 +58,8 @@ function init(){
 }
 
 /* environments */
-function clearEnv(){for(const o of [...envG.children]){envG.remove(o);o.traverse(m=>{if(m.geometry)m.geometry.dispose();if(m.material&&m.material.dispose)m.material.dispose()})}}
+function glow(){if(!gt){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),g=x.createRadialGradient(64,64,0,64,64,64);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(.4,'rgba(255,255,255,.35)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128);gt=new THREE.CanvasTexture(c)}return gt}
+function clearEnv(){spin=null;for(const o of [...envG.children]){envG.remove(o);o.traverse(m=>{if(m.geometry)m.geometry.dispose();if(m.material&&m.material.dispose)m.material.dispose()})}}
 function buildEnv(){
  clearEnv();
  const e=S().vrEnv,L=n('vrLight'),d=n('vrDist'),w=n('vrSize'),h=w/aspect,top=sy()+h/2;
@@ -67,6 +68,30 @@ function buildEnv(){
  envG.add(new THREE.AmbientLight(0xffffff,L));
  const pl=new THREE.PointLight(0xaabbff,.8,80);pl.position.set(0,sy(),-d+1.5);envG.add(pl);
  scene.background=new THREE.Color(e==='space'?0x01010a:0x000000);
+
+ if(e==='galaxy'){
+  const rnd=Math.random,col=new THREE.Color(),AB=THREE.AdditiveBlending;
+  const sp=new Float32Array(7500),sc2=new Float32Array(7500);
+  for(let i=0;i<7500;i+=3){const u=rnd()*2-1,a=rnd()*6.283,r=Math.sqrt(1-u*u);sp[i]=r*Math.cos(a)*95;sp[i+1]=u*95;sp[i+2]=r*Math.sin(a)*95;col.setHSL(rnd()<.3?.6:.1,.4,.7+rnd()*.3);col.toArray(sc2,i)}
+  const sg=new THREE.BufferGeometry();sg.setAttribute('position',new THREE.BufferAttribute(sp,3));sg.setAttribute('color',new THREE.BufferAttribute(sc2,3));
+  envG.add(new THREE.Points(sg,new THREE.PointsMaterial({size:1.7,sizeAttenuation:false,vertexColors:true})));
+  const N=9000,gp=new Float32Array(N*3),gc=new Float32Array(N*3);
+  for(let i=0;i<N;i++){const arm=i%3,r=Math.pow(rnd(),.65)*60,a=r*.1+arm*2.094+(rnd()-.5)*.6;gp[i*3]=Math.cos(a)*r+(rnd()-.5)*3;gp[i*3+1]=(rnd()-.5)*2.5*(1-r/70);gp[i*3+2]=Math.sin(a)*r+(rnd()-.5)*3;col.setHSL(.1+.5*r/60,.8,.6+.3*(1-r/60));col.toArray(gc,i*3)}
+  const gg=new THREE.BufferGeometry();gg.setAttribute('position',new THREE.BufferAttribute(gp,3));gg.setAttribute('color',new THREE.BufferAttribute(gc,3));
+  const gh=new THREE.Group();gh.position.set(-10,28,-85);gh.rotation.set(.45,0,.25);
+  gh.add(new THREE.Points(gg,new THREE.PointsMaterial({size:2,sizeAttenuation:false,vertexColors:true,transparent:true,opacity:.85,blending:AB,depthWrite:false})));
+  const spr=(c,o,x,y,z,sz)=>{const q=new THREE.Sprite(new THREE.SpriteMaterial({map:glow(),color:c,transparent:true,opacity:o,blending:AB,depthWrite:false}));q.position.set(x,y,z);q.scale.set(sz,sz,1);return q};
+  gh.add(spr(0xffe0a0,.8,0,0,0,26));envG.add(gh);spin=gh;
+  [[0xff4fa0,-70,10,-60,80],[0x4f7fff,75,-5,-70,90],[0x9a5aff,10,-30,-90,100]].forEach(q=>envG.add(spr(q[0],.3,q[1],q[2],q[3],q[4])));
+  envG.add(spr(0xfff2cc,.9,45,16,-60,30));
+  add(new THREE.SphereGeometry(9,40,28),St(0x3a6ea5),-32,-6,-48);
+  add(new THREE.RingGeometry(13,19,64),new THREE.MeshBasicMaterial({color:0xbfae8a,transparent:true,opacity:.55,side:THREE.DoubleSide}),-32,-6,-48,Math.PI/2.3);
+  add(new THREE.SphereGeometry(2.6,24,18),St(0xc2603a),26,10,-34);
+  const dl=new THREE.DirectionalLight(0xfff0d0,1.2);dl.position.set(45,16,-30);envG.add(dl);
+  add(new THREE.RingGeometry(1.6,1.75,64),new THREE.MeshBasicMaterial({color:0x8fb4ff,side:THREE.DoubleSide}),0,.01,0,-Math.PI/2);
+  add(new THREE.CircleGeometry(1.75,64),new THREE.MeshBasicMaterial({color:0x0a0f24,transparent:true,opacity:.5,side:THREE.DoubleSide}),0,.005,0,-Math.PI/2);
+  return;
+ }
  if(e==='space'||e==='void'){
   add(new THREE.CircleGeometry(4,48),St(0x14141c),0,0,0,-Math.PI/2);
   if(e==='void')envG.add(new THREE.GridHelper(60,60,0x445577,0x1a2233));
@@ -108,14 +133,14 @@ function buildScreen(){
 function rr(x,y,w,h,r,f){ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();ctx.fillStyle=f;ctx.fill()}
 function list(){const a=T.all();if(lc.a!==a||lc.g!==vg||lc.n!==a.length)lc={a,g:vg,n:a.length,l:a.map((c,i)=>i).filter(i=>!vg||a[i].group===vg)};return lc.l}
 function cyc(k,d){const o=OPT[k].o,i=o.findIndex(x=>x[0]===String(S()[k]));T.change(k,o[(i+d+o.length)%o.length][0])}
+const fmt=t=>{t=Math.max(0,t|0);return (t/60|0)+':'+String(t%60).padStart(2,'0')};
 function draw(){
  const c=ctx,all=T.all(),cur=T.cur(),v=T.v,acc=getComputedStyle(document.body).getPropertyValue('--accent').trim()||'#7aa7ff';
  regions=[];c.clearRect(0,0,VW,VH);rr(0,0,VW,VH,36,'rgba(12,14,34,.94)');
  const tx=(s,x,y,sz,col,al,w)=>{c.font=(w||'600')+' '+sz+'px Sora,system-ui,sans-serif';c.fillStyle=col;c.textAlign=al||'left';c.textBaseline='middle';c.fillText(s,x,y)};
  const B=(id,x,y,w,h,label,fn,on)=>{regions.push({id,x,y,w,h,fn});rr(x,y,w,h,18,on?acc:hov===id?'rgba(255,255,255,.3)':'rgba(255,255,255,.12)');if(label)tx(label,x+w/2,y+h/2,26,on?'#08102a':'#fff','center')};
- tx('Stream Deck TV',36,44,30,'#fff');
- B('t1',380,16,170,56,'Channels',()=>{tab='ch'},tab==='ch');
- B('t2',560,16,170,56,'Settings',()=>{tab='set'},tab==='set');
+ tx('Stream Deck TV',36,44,28,'#fff');
+ [['ch','Channels'],['pl','Player'],['kp','Keypad'],['set','Settings']].forEach((t,i)=>B('t'+i,290+i*152,16,144,56,t[1],()=>{tab=t[0]},tab===t[0]));
  B('x',900,16,100,56,'Hide',()=>{menuOn=false});
  if(tab==='ch'){
   const l=list(),mx=Math.max(0,l.length-ROWS);scroll=Math.max(0,Math.min(scroll,mx));
@@ -134,6 +159,30 @@ function draw(){
   B('next',356,540,140,64,'Next',()=>T.step(1));
   B('mute',506,540,150,64,v.muted?'Unmute':'Mute',()=>T.toggleMute());
   B('grp',666,540,334,64,'Group: '+(vg||'All').slice(0,16),()=>{const G=[''].concat([...new Set(all.map(x=>x.group))].sort());vg=G[(G.indexOf(vg)+1)%G.length];scroll=0});
+ }else if(tab==='pl'){
+  const d=v.duration,fin=isFinite(d)&&d>0,sk=x=>()=>{if(fin)v.currentTime=Math.max(0,Math.min(d,v.currentTime+x))};
+  tx(all[cur]?(cur+1)+'  '+all[cur].name.slice(0,34):'Nothing playing',36,112,30,'#fff');
+  tx(fin?fmt(v.currentTime)+' / '+fmt(d):'LIVE',1000,112,24,'#97a0c0','right','400');
+  regions.push({id:'bar',x:36,y:150,w:964,h:44,fn:p=>{if(fin&&p)v.currentTime=Math.max(0,Math.min(1,(p.x-36)/964))*d}});
+  rr(36,162,964,20,10,hov==='bar'?'rgba(255,255,255,.3)':'rgba(255,255,255,.14)');
+  if(fin)rr(36,162,Math.max(20,964*v.currentTime/d),20,10,acc);
+  B('s1',36,215,140,70,'-30s',sk(-30));B('s2',186,215,140,70,'-10s',sk(-10));B('s3',336,215,140,70,'+10s',sk(10));B('s4',486,215,140,70,'+30s',sk(30));
+  B('pp',636,215,190,70,v.paused?'Play':'Pause',()=>T.togglePlay());B('mute',836,215,164,70,v.muted?'Unmute':'Mute',()=>T.toggleMute());
+  const vol=x=>()=>{v.muted=false;T.change('vol',Math.max(0,Math.min(1,v.volume+x)).toFixed(2))},SP=['0.75','1','1.25','1.5','2'];
+  tx('Volume '+Math.round(v.volume*100)+'%',36,330,26,'#fff');
+  B('vm',280,295,130,70,'Vol -',vol(-.1));B('vp',420,295,130,70,'Vol +',vol(.1));
+  B('spd',560,295,210,70,'Speed '+(+S().speed)+'x',()=>T.change('speed',SP[(SP.indexOf(String(S().speed))+1)%SP.length]));
+  B('lst',780,295,220,70,'Last channel',()=>{if(prevCh>=0)T.play(prevCh)});
+  B('pv',36,380,150,70,'Prev ch',()=>T.step(-1));B('nx',196,380,150,70,'Next ch',()=>T.step(1));
+  B('sm',356,380,160,70,'Screen -',()=>cyc('vrSize',-1));B('sp',526,380,160,70,'Screen +',()=>cyc('vrSize',1));
+  B('env',696,380,160,70,'Environment',()=>cyc('vrEnv',1));B('rc',866,380,134,70,'Move menu',()=>placeMenu());
+ }else if(tab==='kp'){
+  const n3=parseInt(kp,10),ok=!!all[n3-1];
+  rr(36,90,500,86,16,'rgba(255,255,255,.08)');tx(kp||'Type a channel number',56,133,kp?44:24,kp?acc:'#97a0c0');
+  tx(ok?all[n3-1].name.slice(0,30):(kp?'No channel '+n3:''),36,196,22,'#97a0c0','left','400');
+  ['1','2','3','4','5','6','7','8','9','Clear','0','Go'].forEach((k,i)=>B('k'+k,36+(i%3)*170,220+(i/3|0)*78,160,70,k,()=>{if(k==='Clear')kp='';else if(k==='Go'){if(ok)T.play(n3-1);kp=''}else kp=(kp+k).slice(0,4)},k==='Go'&&ok));
+  B('kv',580,90,200,80,'Prev ch',()=>T.step(-1));B('kn',790,90,210,80,'Next ch',()=>T.step(1));
+  B('kl',580,190,200,80,'Last channel',()=>{if(prevCh>=0)T.play(prevCh)});B('kp',790,190,210,80,v.paused?'Play':'Pause',()=>T.togglePlay());
  }else{
   Object.keys(OPT).forEach((k,i)=>{
    const o=OPT[k],y=90+i*56,val=(o.o.find(x=>x[0]===String(S()[k]))||['',''])[1];
@@ -141,7 +190,7 @@ function draw(){
    B('l'+k,560,y,70,50,'<',()=>cyc(k,-1));tx(val,765,y+25,24,acc,'center');B('r'+k,900,y,70,50,'>',()=>cyc(k,1));
   });
  }
- tx(tab==='ch'?'Now: '+(all[cur]?all[cur].name.slice(0,34):'nothing playing'):'A/X shows or hides menu. Stick scrolls.',36,656,22,'#97a0c0','left','400');
+ tx(tab!=='set'?'Now: '+(all[cur]?all[cur].name.slice(0,34):'nothing playing'):'A/X shows or hides menu. Stick scrolls.',36,656,22,'#97a0c0','left','400');
  B('exit',760,624,240,64,'Exit VR',()=>session&&session.end());
  mtex.needsUpdate=true;lastDraw=performance.now();dirty=false;
 }
@@ -152,7 +201,7 @@ function hit(c){
  const h=RC.intersectObject(menu)[0];return h?{d:h.distance,x:h.uv.x*VW,y:(1-h.uv.y)*VH}:null;
 }
 function at(p){if(p)for(const r of regions)if(p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h)return r;return null}
-function click(c){if(!menuOn){T.togglePlay();return}const r=at(hit(c));if(r){r.fn();dirty=true}}
+function click(c){if(!menuOn){T.togglePlay();return}const p=hit(c),r=at(p);if(r){r.fn(p);dirty=true}}
 function placeMenu(){
  const x=R.xr.getCamera(cam),p=new THREE.Vector3(),q=new THREE.Quaternion();x.matrixWorld.decompose(p,q,new THREE.Vector3());
  const f=new THREE.Vector3(0,0,-1).applyQuaternion(q);f.y=0;if(f.lengthSq()<1e-4)f.set(0,0,-1);f.normalize();
@@ -167,7 +216,7 @@ function frame(){
  if(s!==cs){cs=s;buildEnv();buildScreen()}
  menu.visible=menuOn;menu.scale.setScalar(n('vrMenu'));
  if(place>0&&--place===0)placeMenu();
- const now=performance.now();let nh='';
+ const now=performance.now();let nh='';const cc=T.cur();if(cc!==lastSeen){prevCh=lastSeen;lastSeen=cc}if(spin)spin.rotation.y+=.0006;
  for(const c of rays){const p=menuOn?hit(c):null;c.userData.line.scale.z=p?p.d:3;if(p&&!nh){const r=at(p);if(r)nh=r.id}}
  if(nh!==hov){hov=nh;dirty=true}
  if(session)for(const i of session.inputSources){
