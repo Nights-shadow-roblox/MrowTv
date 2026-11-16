@@ -1051,6 +1051,7 @@ body.term .sab:hover{background:var(--accent);color:#000}
   $('#find').addEventListener('click',e=>{if(e.target.id==='find')closeFind()});
   $('#bFind').onclick=openFind; $('#fBack').onclick=closeFind;
 
+  window.SDTV={v,S:()=>S,all:()=>all,cur:()=>cur,play,step,togglePlay,toggleMute,change,say,buildSets,SCHEMA};
   /* ---------- start ---------- */
   console.log('Stream Deck TV - Made By Luni (Ian)');
   const lu=store.get('lastUrl'); if(lu) $('#url').value=lu;
